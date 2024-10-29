@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <complex>
 #include <iomanip>
 #include <iostream>
@@ -17,6 +18,11 @@ private:
     static constexpr double EPSILON = 1e-10;
 
 public:
+    static double epsilon()
+    {
+        return EPSILON;
+    }
+
     size_t rows() const
     {
         return _rows;
@@ -259,11 +265,39 @@ void gauss(Matrix<T>& matrix)
         throw std::invalid_argument("Only square matrices are reduced to a triangular form!");
     }
 
-    for (size_t i = matrix.rows() - 1; i > 0; --i)
+    size_t n = matrix.rows();
+    for (size_t i = n; i > 0; --i)
     {
-        for (size_t j = matrix.rows() - 2; j >= 0; --j)
+        size_t row = i - 1;
+
+        if (std::abs(matrix(row, row)) < Matrix<T>::epsilon())
         {
-            T multiplier = matrix(j, i) / matrix(i, i);
+            bool swapped = false;
+            for (size_t j = row - 1; j < n; --j)
+            {
+                if (std::abs(matrix(j, row)) > Matrix<T>::epsilon())
+                {
+                    for (size_t k = 0; k < n; ++k)
+                    {
+                        std::swap(matrix(row, k), matrix(j, k));
+                    }
+                    swapped = true;
+                    break;
+                }
+            }
+            if (!swapped)
+            {
+                throw std::runtime_error("Matrix is singular and cannot be reduced!");
+            }
+        }
+
+        for (size_t j = 0; j < row; ++j)
+        {
+            T multiplier = matrix(j, row) / matrix(row, row);
+            for (size_t k = 0; k < n; ++k)
+            {
+                matrix(j, k) -= multiplier * matrix(row, k);
+            }
 
         }
     }
