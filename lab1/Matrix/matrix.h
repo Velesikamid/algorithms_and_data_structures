@@ -1,7 +1,6 @@
 #pragma once
 
 #include <complex>
-#include <format>
 #include <iomanip>
 #include <iostream>
 #include <random>
@@ -15,6 +14,7 @@ class Matrix
 private:
     size_t _rows, _cols;
     MyVector<T> _data;
+    static constexpr double EPSILON = 1e-10;
 
 public:
     size_t rows() const
@@ -37,7 +37,7 @@ public:
         return _data;
     }
 
-    Matrix(size_t rows, size_t cols, const T &initial_value)
+    Matrix(size_t rows, size_t cols, const T &initial_value = T())
         : _rows(rows), _cols(cols), _data(size(), initial_value) {}
 
     Matrix(size_t rows, size_t cols, const T &min_value, const T &max_value)
@@ -86,6 +86,125 @@ public:
         return _data[row * _cols + col];
     }
 
+    Matrix operator+(const Matrix &other) const
+    {
+        if (_rows != other._rows || _cols != other._cols)
+        {
+            throw std::invalid_argument("Matrix dimensions must match for addition!");
+        }
+
+        Matrix result(_rows, _cols);
+        for (size_t i = 0; i < size(); ++i)
+        {
+            result._data[i] = _data[i] + other._data[i];
+        }
+
+        return result;
+    }
+
+    Matrix operator-(const Matrix& other) const
+    {
+        if (_rows != other._rows || _cols != other._cols)
+        {
+            throw std::invalid_argument("Matrix dimensions must match for subtraction!");
+        }
+
+        Matrix result(_rows, _cols);
+        for (size_t i = 0; i < size(); ++i)
+        {
+            result._data[i] = _data[i] - other._data[i];
+        }
+        
+        return result;
+    }
+
+    Matrix operator*(const Matrix& other) const
+    {
+        if (_cols != other._rows)
+        {
+            throw std::invalid_argument("Invalid matrix dimensions for multiplication!");
+        }
+
+        Matrix result(_rows, other._cols);
+        for (size_t i = 0; i < _rows; ++i)
+        {
+            for (size_t j = 0; j < other._cols; ++j)
+            {
+                result(i, j) = T();
+                for (size_t k = 0; k < _cols; ++k)
+                {
+                    result(i, j) += (*this)(i, k) * other(k, j);
+                }
+            }
+        }
+        return result;
+    }
+
+    Matrix operator*(const T& scalar) const
+    {
+        Matrix result(_rows, _cols);
+        for (size_t i = 0; i < size(); ++i)
+        {
+            result._data[i] = _data[i] * scalar;
+        }
+
+        return result;
+    }
+
+    friend Matrix operator*(const T& scalar, const Matrix& matrix)
+    {
+        return matrix * scalar;
+    }
+
+    Matrix operator/(const T& scalar) const
+    {
+        Matrix result(_rows, _cols);
+        for (size_t i = 0; i < size(); ++i)
+        {
+            result._data[i] = _data[i] / scalar;
+        }
+
+        return result;
+    }
+
+    T trace() const
+    {
+        if (_rows != _cols)
+        {
+            throw std::invalid_argument("Trace is defined only for square matrices!");
+        }
+
+        T result = T();
+        for (size_t i = 0; i < _rows; ++i)
+        {
+            result += (*this)(i, i);
+        }
+
+        return result;
+    }
+
+    bool operator==(const Matrix& other) const
+    {
+        if (_rows != other._rows || _cols != other._cols)
+        {
+            return false;
+        }
+        
+        for (size_t i = 0; i < size(); ++i)
+        {
+            if (std::abs(_data[i] - other._data[i]) > EPSILON)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool operator!=(const Matrix& other) const
+    {
+        return !(*this == other);
+    }
+
     friend std::ostream &operator<<(std::ostream &stream, const Matrix &matrix)
     {
         for (size_t i = 0; i < matrix._rows; ++i)
@@ -116,7 +235,6 @@ Matrix<std::complex<float>>::Matrix(size_t rows, size_t cols, const std::complex
         _data.push_back(std::complex<float>((float)dis_real(gen), (float)dis_imag(gen)));
     }
 }
-
     
 template<>
 Matrix<std::complex<double>>::Matrix(size_t rows, size_t cols, const std::complex<double> &min_value, const std::complex<double> &max_value)
@@ -130,5 +248,23 @@ Matrix<std::complex<double>>::Matrix(size_t rows, size_t cols, const std::comple
     for (size_t i = 0; i < size(); ++i)
     {
         _data.push_back(std::complex<double>(dis_real(gen), dis_imag(gen)));
+    }
+}
+
+template<class T>
+void gauss(Matrix<T>& matrix)
+{
+    if (matrix.rows() != matrix.cols())
+    {
+        throw std::invalid_argument("Only square matrices are reduced to a triangular form!");
+    }
+
+    for (size_t i = matrix.rows() - 1; i > 0; --i)
+    {
+        for (size_t j = matrix.rows() - 2; j >= 0; --j)
+        {
+            T multiplier = matrix(j, i) / matrix(i, i);
+
+        }
     }
 }
