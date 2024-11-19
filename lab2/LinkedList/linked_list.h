@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <random>
 #include <stdexcept>
 
@@ -42,6 +43,8 @@ public:
 
     T& operator[](size_t index);
     const T& operator[](size_t index) const;
+
+    void print() const;
 };
 
 template<class T>
@@ -137,4 +140,103 @@ void LinkedList<T>::push_head(const LinkedList& other) {
         push_head(current->_data);
         current = current->_prev;
     }
+}
+
+template<class T>
+T LinkedList<T>::pop_head() {
+    if (!_head) {
+        throw std::underflow_error("List is empty!");
+    }
+
+    Node<T>* temp = _head;
+    T data = temp->_data;
+    _head = _head->_next;
+    if (_head) {
+        _head->_prev = nullptr;
+    } else {
+        _tail = nullptr;
+    }
+    delete temp;
+    --_size;
+
+    return data;
+}
+
+template<class T>
+T LinkedList<T>::pop_tail() {
+    if (!_tail) {
+        throw std::underflow_error("List is empty!");
+    }
+
+    Node<T>* temp = _tail;
+    T data = temp->_data;
+    _tail = _tail->_prev;
+    if (_tail) {
+        _tail->_next = nullptr;
+    } else {
+        _head = nullptr;
+    }
+    delete temp;
+    --_size;
+
+    return data;
+}
+
+template<class T>
+void LinkedList<T>::delete_node(const T& value) {
+    Node<T>* current = _head;
+    while (current) {
+        Node<T>* next = current->_next;
+        if (current->_data == value) {
+            if (current->_prev) {
+                current->_prev->_next = current->_next;
+            } else {
+                _head = current->_next;
+            }
+            if (current->_next) {
+                current->_next->_prev = current->_prev;
+            } else {
+                _tail = current->_prev;
+            }
+            delete current;
+            --_size;
+        }
+        current = next;
+    }
+}
+
+template<class T>
+T& LinkedList<T>::operator[](size_t index) {
+    if (index >= _size) {
+        throw std::out_of_range("Index out of range!");
+    }
+
+    Node<T>* current = _head;
+    for (size_t i = 0; i < index; ++i) {
+        current = current->_next;
+    }
+    return current->_data;
+}
+
+template<class T>
+const T& LinkedList<T>::operator[](size_t index) const {
+    if (index >= _size) {
+        throw std::out_of_range("Index out of range!");
+    }
+
+    Node<T>* current = _head;
+    for (size_t i = 0; i < index; ++i) {
+        current = current->_next;
+    }
+    return current->_data;
+}
+
+template<class T>
+void LinkedList<T>::print() const {
+    Node<T>* current = _head;
+    while (current) {
+        std::cout << current->_data << " ";
+        current = current->_next;
+    }
+    std::cout << std::endl;
 }
