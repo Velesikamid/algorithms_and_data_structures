@@ -5,21 +5,21 @@
 #include "../Stats/stats.h"
 
 stats bubble_sort(std::vector<int>& v) {
-    size_t comparison_count = 0, copy_count = 0;
+    stats stat;
     size_t n = v.size();
+    bool swapped = true;
 
-    for (size_t i = 0; i < n; ++i) {
-        bool is_sorted = true;
+    for (size_t i = 0; i < n - 1 && swapped; ++i) {
+        swapped = false;
         for (size_t j = 0; j < n - i - 1; ++j) {
-            ++comparison_count;
+            ++stat.comparison_count;
             if (v[j] > v[j + 1]) {
-                is_sorted = false;
                 std::swap(v[j], v[j + 1]);
-                copy_count += 3;
+                stat.copy_count += 3;
+                swapped = true;
             }
         }
-        if (is_sorted) break;
     }
 
-    return stats(comparison_count, copy_count);
+    return stat;
 }

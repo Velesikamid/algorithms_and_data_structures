@@ -4,25 +4,26 @@
 
 #include "../Stats/stats.h"
 
-stats comb_sort(std::vector<int>& v, size_t step) {
-    size_t comparison_count = 0, copy_count = 0;
-    size_t n = v.size();
-    bool is_sorted = false;
+stats comb_sort(std::vector<int>& v) {
+    stats stat;
+    size_t gap = v.size();
+    const double shrink_factor = 1.3;
+    bool swapped = true;
 
-    while(step > 1 || is_sorted) {
-        if (step > 1) step = step * 4 / 5;
-        is_sorted = false;
-        size_t i = 0;
-        while (i + step < n) {
-            ++comparison_count;
-            if (v[i] > v[i + step]) {
-                is_sorted = true;
-                std::swap(v[i], v[i + step]);
-                copy_count += 3;
+    while(gap > 1 || swapped) {
+        gap = static_cast<size_t>(gap / shrink_factor);
+        if (gap < 1) gap = 1;
+        swapped = false;
+        
+        for (size_t i = 0; i + gap < v.size(); ++i) {
+            ++stat.comparison_count;
+            if (v[i] > v[i + gap]) {
+                std::swap(v[i], v[i + gap]);
+                stat.copy_count += 3;
+                swapped = true;
             }
-            i += step;
         }
     }
 
-    return stats(comparison_count, copy_count);
+    return stat;
 }

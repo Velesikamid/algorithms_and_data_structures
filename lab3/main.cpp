@@ -4,36 +4,47 @@
 
 #include "Sortings/bubble_sort.h"
 #include "Sortings/comb_sort.h"
+#include "Sortings/heap_sort.h"
 
-int main() {
+std::vector<int> generate_random_array(size_t size, int min = 0, int max = 10000) {
+    std::vector<int> v(size);
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dist(-100, 100);
+    std::uniform_int_distribution<int> dis(min, max);
 
-    std::vector<int> v1, v2, v3;
-    for(size_t i = 0; i < 100; ++i) {
-        v1.push_back(dist(gen));
-        v2.push_back(dist(gen));
-        v3.push_back(dist(gen));
+    for (size_t i = 0; i < size; ++i) {
+         v[i] = dis(gen);
     }
-    
-    std::cout << "Bubble sort:\n";
-    std::cout << "The original array: [";
-    for (int n : v1) std::cout << n << " ";
-    std::cout << "]\n\n";
-    std::cout << bubble_sort(v1);
-    std::cout << "The sorted array: [";
-    for (int n : v1) std::cout << n << " ";
-    std::cout << "]\n\n";
 
-    std::cout << "\nComb sort:\n";
-    std::cout << "The original array: [";
-    for (int n : v2) std::cout << n << " ";
-    std::cout << "]\n\n";
-    std::cout << comb_sort(v2, 10);
-    std::cout << "The sorted array: [";
-    for (int n : v2) std::cout << n << " ";
-    std::cout << "]\n\n";
+    return v;
+}
+
+int main() {
+    std::vector<size_t> sizes = {1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 25000, 50000, 100000};
+    for (const auto& size : sizes) {
+        std::vector<int> random_array = generate_random_array(size);
+        std::vector<int> sorted_array = random_array;
+        std::vector<int> reversed_array = random_array;
+
+        std::sort(sorted_array.begin(), sorted_array.end());
+        std::sort(reversed_array.rbegin(), reversed_array.rend());
+
+        std::cout << "Array size: " << size <<"\n";
+
+        auto random_copy = random_array;
+        stats stat = bubble_sort(random_copy);
+        std::cout << "Bubble Sort - Random:\n" << stat << "\n";
+
+        random_copy = random_array;
+        stat = comb_sort(random_copy);
+        std::cout << "Comb Sort - Random:\n" << stat << "\n";
+
+        random_copy = random_array;
+        stat = heap_sort(random_copy);
+        std::cout << "Heap Sort - Random:\n" << stat;
+
+        std::cout << "------------------------------------\n";
+    }
 
     return 0;
 }
