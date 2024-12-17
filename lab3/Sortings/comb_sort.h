@@ -7,11 +7,10 @@
 stats comb_sort(std::vector<int>& v) {
     stats stat;
     size_t gap = v.size();
-    const double shrink_factor = 1.3;
     bool swapped = true;
 
     while(gap > 1 || swapped) {
-        gap = static_cast<size_t>(gap / shrink_factor);
+        gap = (gap * 10) / 13;
         if (gap < 1) gap = 1;
         swapped = false;
         
