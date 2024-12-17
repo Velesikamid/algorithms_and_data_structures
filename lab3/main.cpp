@@ -57,7 +57,7 @@ int main() {
         std::vector<size_t> av_copy_heap;
 
         for (size_t i = 0; i < 100; ++i) {
-            std::vector<int> random_array = generate_random_array(size);
+            random_array = generate_random_array(size);
             auto random_copy = random_array;
             stats stat = bubble_sort(random_copy);
             av_comparison_bubble.push_back(stat.comparison_count);
@@ -94,6 +94,17 @@ int main() {
         std::cout << "\tThe best:\n" << stat;
         random_copy = reversed_array;
         stat = comb_sort(random_copy);
+        std::cout << "\tThe worst:\n" << stat << "\n";
+
+        std::cout << "Heap Sort:\n";
+        std::cout << "\tAverage:\n";
+        std::cout << "The number of comparisons: " << find_average(av_comparison_heap) << "\n";
+        std::cout << "The number of copies: " << find_average(av_copy_heap) << "\n";
+        random_copy = sorted_array;
+        stat = heap_sort(random_copy);
+        std::cout << "\tThe best:\n" << stat;
+        random_copy = reversed_array;
+        stat = heap_sort(random_copy);
         std::cout << "\tThe worst:\n" << stat << "\n";
 
         std::cout << "------------------------------------\n";
