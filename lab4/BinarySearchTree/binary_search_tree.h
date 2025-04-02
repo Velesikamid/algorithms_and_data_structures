@@ -7,13 +7,65 @@ private:
     struct Node
     {
         T _key;
+        int _height;
         Node *_left;
         Node *_right;
 
-        Node(T key) : _key(key), _left(nullptr), _right(nullptr) {}
+        Node(T key) : _key(key), _height(1), _left(nullptr), _right(nullptr) {}
     };
 
     Node *_root;
+
+    int getHeight(Node* node) {
+        if (!node) return 0;
+        return node->_height;
+    }
+
+    int getBalance(Node* node) {
+        if (!node) return 0;
+        return getHeight(node->_left) - getHeight(node->_right);
+    }
+
+    void updateHeight(Node* node) {
+        node->_height = std::max(getHeight(node->_left), getHeight(node->_right)) + 1;
+    }
+
+    Node* rotateLeft(Node* node) {
+        Node* pivot = node->_right;
+        node->_right = pivot->_left;
+        pivot->_left = node;
+        updateHeight(node);
+        updateHeight(pivot);
+        return pivot;
+    }
+
+    Node* rotateRight(Node* node) {
+        Node* pivot = node->_left;
+        node->_left = pivot->_right;
+        pivot->_right = node;
+        updateHeight(node);
+        updateHeight(pivot);
+        return pivot;
+    }
+
+    Node* rebalance(Node* node) {
+        int balance = getBalance(node);
+        if(balance > 1) {
+            if (getBalance(node->_left) >= 0) return rotateRight(node);
+            else {
+                node->_left = rotateLeft(node->_left);
+                return rotateRight(node);
+            }
+        }
+        if (balance < -1) {
+            if (getBalance(node->_right) <= 0) return rotateLeft(node);
+            else {
+                node->_right = rotateRight(node->_right);
+                return rotateLeft(node);
+            }
+        }
+        return node;
+    }
 
     Node *copyTree(Node *node) const
     {
@@ -54,6 +106,8 @@ private:
             if (!node->_left)
             {
                 node->_left = new Node(key);
+                updateHeight(node);
+                node = rebalance(node);
                 return true;
             }
             return insertHelper(node->_left, key);
@@ -63,6 +117,8 @@ private:
             if (!node->_right)
             {
                 node->_right = new Node(key);
+                updateHeight(node);
+                node = rebalance(node);
                 return true;
             }
             return insertHelper(node->_right, key);
@@ -148,6 +204,8 @@ public:
         if (!_root)
         {
             _root = new Node(key);
+            updateHeight(_root);
+            _root = rebalance(_root);
             return true;
         }
         return insertHelper(_root, key);
@@ -159,6 +217,60 @@ public:
     bool erase(T key)
     {
         return eraseHelper(_root, key);
+    }
+
+    class Iterator {
+    private:
+        Node* _current;
+        Node* _root;
+
+        Node* nextInOrder(Node* node) {
+            if (node->_right) {
+                Node* temp = node->_right;
+                while (temp->_left) temp = temp->_left;
+                return temp;
+            }
+            Node* parent = getParent(node);
+            while (parent && node == parent->_right) {
+                node = parent;
+                parent = getParent(node);
+            }
+            return parent;
+        }
+
+        Node* getParent(Node* node) {
+            if (node == _root) return nullptr;
+            Node* parent = _root;
+            while (parent->_left != node && parent->_right != node) {
+                if (node->_key < parent->_key) parent = parent->_left;
+                else parent = parent->_right;
+            }
+            return parent;
+        }
+    
+    public:
+        Iterator(Node* node, Node* root) : _current(node), _root(root) {}
+
+        int operator*() const {
+            return _current->_key;
+        }
+
+        Iterator& operator++() {
+            _current = nextInOrder(_current);
+            return *this;
+        }
+
+        bool operator!=(const Iterator& other) const {
+            return _current != other._current;
+        }
+    };
+
+    Iterator begin() {
+        return Iterator(findMin(_root), _root);
+    }
+
+    Iterator end() {
+        return Iterator(nullptr, _root);
     }
 };
 
@@ -211,9 +323,10 @@ private:
     {
         if (!node)
             return true;
-        if (node->_key == key)
+        if (node->_key == key) {
             ++node->_count;
-        return false;
+            return false;
+        }
         if (key < node->_key)
         {
             if (!node->_left)
@@ -287,9 +400,9 @@ private:
     }
 
 public:
-    BinarySearchTree() : _root(nullptr) {}
-    BinarySearchTree(const BinarySearchTree &other) : _root(copyTree(other._root)) {}
-    BinarySearchTree &operator=(const BinarySearchTree &other)
+    BinarySearchTreeWithDuplicates() : _root(nullptr) {}
+    BinarySearchTreeWithDuplicates(const BinarySearchTreeWithDuplicates &other) : _root(copyTree(other._root)) {}
+    BinarySearchTreeWithDuplicates &operator=(const BinarySearchTreeWithDuplicates &other)
     {
         if (this != &other)
         {
@@ -298,7 +411,7 @@ public:
         }
         return *this;
     }
-    ~BinarySearchTree()
+    ~BinarySearchTreeWithDuplicates()
     {
         deleteTree(_root);
     }
@@ -326,3 +439,21 @@ public:
         return eraseHelper(_root, key);
     }
 };
+
+template <class T>
+bool is_include(BinarySearchTree<T>& tree1, BinarySearchTree<T>& tree2) {
+    bool result = true;
+    int count1 = 0, count2 = 0;
+    for (auto key : tree1) ++count1;
+    for (auto key : tree2) ++count2;
+    if (count1 <= count2) {
+        for (auto key : tree1) {
+            if (!tree2.contains(key)) result = false;
+        }
+    } else {
+        for (auto key : tree2) {
+            if (!tree1.contains(key)) result = false;
+        }
+    }
+    return result;
+}
