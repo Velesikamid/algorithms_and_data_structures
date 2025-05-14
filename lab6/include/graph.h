@@ -4,6 +4,7 @@
 #include <set>
 #include <stack>
 #include <limits>
+#include <functional>
 
 template<class Vertex, class Distance = double>
 class Graph {
@@ -113,7 +114,7 @@ public:
     }
 
     size_t degree(const Vertex& v) const {
-        return _edges.count(v)
+        return _edges.count(v);
     }
 
     bool is_connected() const {
@@ -167,7 +168,7 @@ public:
         for (const auto& edge_pair : _edges) {
             const Edge& e = edge_pair.second;
             if(distances[e._from] != std::numeric_limits<Distance>::max() &&
-               distances[e._to] > distance[e._from] + e._distance) {
+               distances[e._to] > distances[e._from] + e._distance) {
                 throw std::runtime_error("Graph contains negative weight cycle");
             }
         }
@@ -245,7 +246,7 @@ Vertex find_optimal_warehouse(const Graph<Vertex, Distance>& graph) {
                 auto path = graph.shortest_path(v, u);
                 Distance total_distance = 0;
                 for (const auto& edge : path) {
-                    total_distance += edge.distance;
+                    total_distance += edge._distance;
                 }
                 if (total_distance > current_max) {
                     current_max = total_distance;
