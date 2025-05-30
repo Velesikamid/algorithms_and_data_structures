@@ -1,10 +1,8 @@
 #pragma once
 
-#include <vector>
-#include <list>
-#include <string>
-#include <random>
 #include <iostream>
+#include <random>
+#include <string>
 
 template <class K, class T>
 class HashTable {
@@ -12,17 +10,71 @@ private:
     struct Node {
         K _key;
         T _value;
+        Node* _next;
 
-        Node(K key, T value) : _key(key), _value(value) {}
+        Node(K key, T value) : _key(key), _value(value), _next(nullptr) {}
     };
 
-    std::vector<std::list<Node>> _table;
-    size_t _size;
+    struct Bucket {
+        Node* _head;
+        size_t _size;
+
+        Bucket() : _head(nullptr), _size(0) {}
+
+        ~Bucket() {
+            Node* current = _head;
+            while (current) {
+                Node* next = current->_next;
+                delete current;
+                current = next;
+            }
+        }
+
+        void push_back(K key, T value) {
+            Node* newNode = new Node(key, value);
+            if (!_head) _head = newNode;
+            else {
+                Node* current = _head;
+                while (current->_next) current = current->_next;
+                current->_next = newNode;
+            }
+            ++_size;
+        }
+
+        bool erase(K key) {
+            if (!_head) return false;
+
+            if (_head->_key == key) {
+                Node* toDelete = _head;
+                _head = _head->_next;
+                delete toDelete;
+                --_size;
+                return true;
+            }
+
+            Node* current = _head;
+            while (current->_next) {
+                if (current->_next->_key == key) {
+                    Node* toDelete = current->_next;
+                    current->_next = toDelete->_next;
+                    delete toDelete;
+                    --_size;
+                    return true;
+                }
+                current = current->_next;
+            }
+            return false;
+        }
+    };
+
+    Bucket* _table;
+    size_t _tableSize;
+    size_t _totalSize;
 
     size_t hash_function(K key) const {
         const size_t a = 2654435761;
         const size_t w = 32;
-        const size_t m = _table.size();
+        const size_t m = _tableSize;
         const size_t shift = w - log2(m);
 
         size_t hash = static_cast<size_t>(key) * a;
@@ -84,9 +136,13 @@ private:
     }
 
 public:
-    HashTable(size_t size = 10) : _table(size), _size(0) {}
+    HashTable(size_t size = 10) : _tableSize(size), _totalSize(0) {
+        _table = new Bucket[size];
+    }
 
-    HashTable(size_t size, size_t count) : _table(size), _size(0) {
+    HashTable(size_t size, size_t count) : _tableSize(size), _totalSize(0) {
+        _table = new Bucket[size];
+
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_int_distribution<K> key_dist(1, 1000);
@@ -97,23 +153,47 @@ public:
         }
     }
 
-    HashTable(const HashTable& other) : _table(other._table), _size(other._size) {}
+    HashTable(const HashTable& other) : _tableSize(other._tableSize), _totalSize(other._totalSize) {
+        _table = new Bucket[_tableSize];
+        for (size_t i = 0; i < _tableSize; ++i) {
+            Node* current = other._table[i]._head;
+            while (current) {
+                _table[i].push_back(current->_key, current->_value);
+                current = current->_next;
+            }
+        }
+    }
 
-    ~HashTable() = default;
+    ~HashTable() {
+        delete[] _table;
+    }
 
     HashTable& operator=(const HashTable& other) {
         if (this != &other) {
-            _table = other._table;
-            _size = other._size;
+            delete[] _table;
+
+            _tableSize = other._tableSize;
+            _totalSize = other._totalSize;
+            _table = new Bucket[_tableSize];
+
+            for (size_t i = 0; i < _tableSize; ++i) {
+                Node* current = other._table[i]._head;
+                while (current) {
+                    _table[i].push_back(current->_key, current->_value);
+                    current = current->_next;
+                }
+            }
         }
         return *this;
     }
 
     void print() const {
-        for (size_t i = 0; i < _table.size(); ++i) {
+        for (size_t i = 0; i < _tableSize; ++i) {
             std::cout << "Bucket " << i << ": ";
-            for (const auto& node : _table[i]) {
-                std::cout << "[" << node._key << ":" << node._value << "] ";
+            Node* current = _table[i]._head;
+            while (current) {
+                std::cout << "[" << current->_key << ":" << current->_value << "]";
+                current = current->_next;
             }
             std::cout << std::endl;
         }
@@ -121,32 +201,36 @@ public:
 
     bool insert(K key, const T& value) {
         size_t index = hash_function(key);
-        for (auto& node : _table[index]) {
-            if (node._key == key) return false;
+        Node* current = _table[index]._head;
+        while (current) {
+            if (current->_key == key) return false;
+            current = current->_next;
         }
-        _table[index].emplace_back(key, value);
-        ++_size;
+        _table[index].push_back(key, value);
+        ++_totalSize;
         return true;
     }
 
     void insert_or_assign(K key, T& value) {
         size_t index = hash_function(key);
-        for (auto& node : _table[index]) {
-            if (node._key == key) {
-                node._value = value;
+        Node* current = _table[index]._head;
+        while (current) {
+            if (current->_key == key) {
+                current->_value = value;
                 return;
             }
+            current = current->_next;
         }
-        _table[index].emplace_back(key, value);
-        ++_size;
+        _table[index].push_back(key, value);
+        ++_totalSize;
     }
 
     bool contains(const T& value) const {
-        for (const auto& bucket : _table) {
-            for (const auto& node : bucket) {
-                if (node._value == value) {
-                    return true;
-                }
+        for (size_t i = 0; i < _tableSize; ++i) {
+            Node* current = _table[i]._head;
+            while (current) {
+                if (current->_value == value) return true;
+                current = current->_next;
             }
         }
         return false;
@@ -154,29 +238,26 @@ public:
 
     T* search(K key) {
         size_t index = hash_function(key);
-        for (auto& node : _table[index]) {
-            if (node._key == key) {
-                return &node._value;
-            }
+        Node* current = _table[index]._head;
+        while (current) {
+            if (current->_key == key) return &current->_value;
+            current = current->_next;
         }
         return nullptr;
     }
 
     bool erase(K key) {
         size_t index = hash_function(key);
-        for (auto it = _table[index].begin(); it != _table[index].end(); ++it) {
-            if (it->_key == key) {
-                _table[index].erase(it);
-                --_size;
-                return true;
-            }
+        if (_table[index].erase(key)) {
+            --_totalSize;
+            return true;
         }
         return false;
     }
 
     int count(K key) const {
         size_t index = hash_function(key);
-        return _table[index].size();
+        return _table[index]._size;
     }
 
     size_t roman_to_decimal(const std::string& roman) const {
